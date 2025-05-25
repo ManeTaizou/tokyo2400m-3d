@@ -1,113 +1,72 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>東京競馬場 2400m 3D コース</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>東京2400m 3D コース</title>
+  <style>html,body{margin:0;height:100%;overflow:hidden;background:#111}</style>
 
-  <!-- ページ背景など最小スタイル -->
-  <style>
-    html,body{
-      margin:0;
-      height:100%;
-      overflow:hidden;
-      background:#111;
-    }
-  </style>
-
-  <!-- Three.js（非モジュール版 CDN） -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r160/three.min.js"></script>
-  <!-- OrbitControls（非モジュール版） -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- Three.js 本体（unpkg CDN） -->
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <!-- OrbitControls -->
+  <script src="https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 
 <body>
 <script>
+/* ===== Three.js 読み込みチェック ===== */
+if (typeof THREE === 'undefined') {
+  document.body.innerHTML =
+    "<h1 style='color:#f44;text-align:center;margin-top:40vh'>Three.js Load Error</h1>";
+  throw new Error('Three.js failed to load');
+}
+
 /* ===== 基本セットアップ ===== */
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x111111);
+const scene = new THREE.Scene();               scene.background = new THREE.Color(0x111111);
+const cam   = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 5000);
+cam.position.set(0, 800, 1200);
 
-const camera = new THREE.PerspectiveCamera(
-  55, window.innerWidth / window.innerHeight, 0.1, 5000
-);
-camera.position.set(0, 800, 1200);
+const ren   = new THREE.WebGLRenderer({ antialias:true });
+ren.setSize(innerWidth, innerHeight);
+document.body.appendChild(ren.domElement);
 
-const renderer = new THREE.WebGLRenderer({ antialias:true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+const ctl   = new THREE.OrbitControls(cam, ren.domElement);
+ctl.enableDamping = true;
 
-const controls = new THREE.OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-
-/* ===== 照明 ===== */
+/* ----- ライト ----- */
 scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-const dir = new THREE.DirectionalLight(0xffffff, 0.8);
-dir.position.set(200, 400, 300);
+const dir = new THREE.DirectionalLight(0xffffff, 0.8); dir.position.set(200, 400, 300);
 scene.add(dir);
 
-/* ===== 東京2400m コース（概略オーバル）===== */
-const radius = 190;        // 1・3 コーナー半径（px）
-const straight = 526;      // 直線長（px）
-const segments = 50;       // 分割数
+/* ===== 東京2400m 簡易コース ===== */
+const r = 190, st = 526, seg = 50, pts = [];
+for (let i=0;i<=seg;i++){ const t=Math.PI/2+Math.PI/2*i/seg; pts.push(new THREE.Vector3(-st/2+r*Math.cos(t),0,r*Math.sin(t))); }
+pts.push(new THREE.Vector3(st/2,0,r));
+for (let i=0;i<=seg;i++){ const t=Math.PI/2+Math.PI/2*i/seg; pts.push(new THREE.Vector3(st/2+r*Math.cos(-t),0,r*Math.sin(-t))); }
+pts.push(new THREE.Vector3(-st/2,0,-r));
 
-const pts = [];
-for (let i = 0; i <= segments; i++) {
-  const t = Math.PI/2 + (Math.PI/2) * (i/segments);
-  pts.push(new THREE.Vector3(-straight/2 + radius*Math.cos(t), 0, radius*Math.sin(t)));
-}
-pts.push(new THREE.Vector3(straight/2, 0, radius));
-for (let i = 0; i <= segments; i++) {
-  const t = Math.PI/2 + (Math.PI/2) * (i/segments);
-  pts.push(new THREE.Vector3(straight/2 + radius*Math.cos(-t), 0, radius*Math.sin(-t)));
-}
-pts.push(new THREE.Vector3(-straight/2, 0, -radius));
+/* 高低差 (最後の直線 2.1m 上り) */
+const fin=pts.length-1, climb=1-(st/2400);
+for(let i=0;i<pts.length;i++){ const t=i/fin; if(t>=climb){ pts[i].y = 2.1*((t-climb)/(1-climb)); } }
 
-/* 高低差：最後の直線で +2.1m 上り（ざっくり） */
-const finishIdx = pts.length - 1;
-for (let i = 0; i < pts.length; i++){
-  const ratio = i / finishIdx;
-  const climbStart = 1 - (straight / 2400);   // 直線開始地点
-  if (ratio >= climbStart) {
-    const t = (ratio - climbStart) / (1 - climbStart);
-    pts[i].y = 2.1 * t;   // 最大 +2.1m
-  }
-}
-
-/* チューブでコース幅を作る */
-const path  = new THREE.CatmullRomCurve3(pts, true);
-const tubeG = new THREE.TubeGeometry(path, 300, 12, 16, true);
+const path  = new THREE.CatmullRomCurve3(pts,true);
 const track = new THREE.Mesh(
-  tubeG,
+  new THREE.TubeGeometry(path,300,12,16,true),
   new THREE.MeshStandardMaterial({ color:0x2fa62f })
 );
 scene.add(track);
 
-/* ===== 隠しロゴを裏面に ===== */
-const tex = new THREE.TextureLoader().load(
-  "https://placehold.co/256x256?text=WIN5-LABO"
-);
+/* 隠しロゴ */
+const tex = new THREE.TextureLoader().load('https://placehold.co/256x256?text=WIN5-LABO');
 const egg = new THREE.Mesh(
   new THREE.PlaneGeometry(120,120),
   new THREE.MeshBasicMaterial({ map:tex, transparent:true, side:THREE.DoubleSide })
 );
-egg.rotation.x = Math.PI;   // 真下向き
-egg.position.set(0,-50,0);
-scene.add(egg);
+egg.rotation.x = Math.PI; egg.position.set(0,-50,0); scene.add(egg);
 
-/* ===== レンダリングループ ===== */
-function animate(){
-  requestAnimationFrame(animate);
-  controls.update();
-  renderer.render(scene, camera);
-}
-animate();
-
-/* ===== リサイズ対応 ===== */
-window.addEventListener("resize", () => {
-  camera.aspect = window.innerWidth/window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
+/* ループ & リサイズ */
+addEventListener('resize',() => { cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); ren.setSize(innerWidth,innerHeight); });
+(function loop(){ requestAnimationFrame(loop); ctl.update(); ren.render(scene,cam); })();
 </script>
 </body>
 </html>
