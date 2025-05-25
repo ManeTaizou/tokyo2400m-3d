@@ -1,52 +1,80 @@
 <!DOCTYPE html><html lang="ja"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>東京2400m 3D コース</title>
+<title>東京2400m 3D</title>
 <style>html,body{margin:0;height:100%;overflow:hidden;background:#111}</style>
-<!-- Three.js 本体（0.160.0）だけ CDN 読み込み ＊この URL は存在確認済み -->
+
+<!-- Three.js 本体のみ CDN で読込（存在確認済みの URL） -->
 <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
 </head><body><script>
-/* ===== 読み込みチェック ===== */
-if(typeof THREE==='undefined'){document.body.innerHTML='<h1 style="color:#f44;text-align:center;margin-top:40vh">Three.js Load Error</h1>';throw new Error('Three.js failed');}
+/* ============ 読み込みチェック ============ */
+if(typeof THREE==='undefined'){
+  document.body.innerHTML='<h1 style="color:#f44;text-align:center;margin-top:40vh">Three.js Load Error</h1>';
+  throw new Error('Three.js failed');
+}
 
-/* ===== 基本セットアップ ===== */
+/* ============ Three.js 初期化 ============ */
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x111111);
-const cam=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,0.1,5000);cam.position.set(0,800,1200);
-const ren=new THREE.WebGLRenderer({antialias:true});ren.setSize(innerWidth,innerHeight);document.body.appendChild(ren.domElement);
+const cam=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,0.1,5000);
+cam.position.set(0,800,1200);
 
-/* ===== 簡易ドラッグ操作（OrbitControls 無し） ===== */
-let isDown=false, prevX=0, prevY=0, phi=0, theta=0, radius=1500;
-function updateCam(){cam.position.x=radius*Math.sin(phi)*Math.cos(theta);
-                     cam.position.y=radius*Math.sin(theta);
-                     cam.position.z=radius*Math.cos(phi)*Math.cos(theta);
-                     cam.lookAt(0,0,0);}
-updateCam();
-ren.domElement.addEventListener('pointerdown',e=>{isDown=true;prevX=e.clientX;prevY=e.clientY});
+const ren=new THREE.WebGLRenderer({antialias:true});
+ren.setSize(innerWidth,innerHeight);
+document.body.appendChild(ren.domElement);
+
+/* ============ 簡易カメラ操作（独自実装） ============ */
+let isDown=false,startX=0,startY=0,phi=0,theta=0,radius=1500;
+function updateCam(){
+  cam.position.x=radius*Math.sin(phi)*Math.cos(theta);
+  cam.position.y=radius*Math.sin(theta);
+  cam.position.z=radius*Math.cos(phi)*Math.cos(theta);
+  cam.lookAt(0,0,0);
+}
+ren.domElement.addEventListener('pointerdown',e=>{isDown=true;startX=e.clientX;startY=e.clientY});
 addEventListener('pointerup',()=>isDown=false);
-addEventListener('pointermove',e=>{if(!isDown)return;
-  const dx=(e.clientX-prevX)/200, dy=(e.clientY-prevY)/200;
-  prevX=e.clientX;prevY=e.clientY;
-  phi   -= dx;                       // 左右ドラッグで水平回転
-  theta  =Math.max(-1.2,Math.min(1.2,theta+dy)); // 上下ドラッグで俯仰
-  updateCam();});
-addEventListener('wheel',e=>{radius*=e.deltaY>0?1.05:0.95;radius=Math.max(500,Math.min(3000,radius));updateCam();});
+addEventListener('pointermove',e=>{
+  if(!isDown)return;
+  phi   -= (e.clientX-startX)/300;          // 水平回転
+  theta  =Math.max(-1.2,Math.min(1.2,theta+(e.clientY-startY)/300)); // 垂直
+  startX=e.clientX;startY=e.clientY;updateCam();
+});
+addEventListener('wheel',e=>{
+  radius*=e.deltaY>0?1.05:0.95;
+  radius=Math.max(500,Math.min(3000,radius));
+  updateCam();
+});
+updateCam();
 
-/* ===== ライト ===== */
+/* ============ ライト ============ */
 scene.add(new THREE.AmbientLight(0xffffff,0.7));
-const dir=new THREE.DirectionalLight(0xffffff,0.8);dir.position.set(200,400,300);scene.add(dir);
+const dir=new THREE.DirectionalLight(0xffffff,0.8);
+dir.position.set(200,400,300);scene.add(dir);
 
-/* ===== 東京2400m コース ===== */
+/* ============ 東京2400m コース（概形） ============ */
 const r=190,st=526,seg=50,pts=[];
-for(let i=0;i<=seg;i++){const t=Math.PI/2+Math.PI/2*i/seg;pts.push(new THREE.Vector3(-st/2+r*Math.cos(t),0,r*Math.sin(t)));}
+for(let i=0;i<=seg;i++){const t=Math.PI/2+Math.PI/2*i/seg;pts.push(new THREE.Vector3(-st/2+r*Math.cos(t),0,r*Math.sin(t))); }
 pts.push(new THREE.Vector3(st/2,0,r));
-for(let i=0;i<=seg;i++){const t=Math.PI/2+Math.PI/2*i/seg;pts.push(new THREE.Vector3(st/2+r*Math.cos(-t),0,r*Math.sin(-t)));}
+for(let i=0;i<=seg;i++){const t=Math.PI/2+Math.PI/2*i/seg;pts.push(new THREE.Vector3(st/2+r*Math.cos(-t),0,r*Math.sin(-t))); }
 pts.push(new THREE.Vector3(-st/2,0,-r));
+
+/* 高低差：最後の直線で +2.1m */
 const fin=pts.length-1,start=1-(st/2400);
-for(let i=0;i<pts.length;i++){const t=i/fin;if(t>=start){pts[i].y=2.1*((t-start)/(1-start));}}
-const track=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts,true),300,12,16,true),
-                           new THREE.MeshStandardMaterial({color:0x2fa62f}));
+for(let i=0;i<pts.length;i++){
+  const t=i/fin;if(t>=start){pts[i].y=2.1*((t-start)/(1-start));}
+}
+
+const track=new THREE.Mesh(
+  new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts,true),300,12,16,true),
+  new THREE.MeshStandardMaterial({color:0x2fa62f})
+);
 scene.add(track);
 
-/* ===== 隠しロゴ ===== */
+/* ============ 裏面ロゴ ============ */
 const tex=new THREE.TextureLoader().load('https://placehold.co/256x256?text=WIN5-LABO');
-const egg=new THREE.Mesh(new THREE.PlaneGeometry(120,120),new THREE.MeshBasicMaterial({map:tex,transparent:true,side:THREE.DoubleSide}));
-egg.rotation.x=Math.PI;egg.position.set(0,-50,0);scen
+const egg=new THREE.Mesh(new THREE.PlaneGeometry(120,120),
+  new THREE.MeshBasicMaterial({map:tex,transparent:true,side:THREE.DoubleSide}));
+egg.rotation.x=Math.PI;egg.position.set(0,-50,0);scene.add(egg);
+
+/* ============ レンダリング ============ */
+function loop(){requestAnimationFrame(loop);ren.render(scene,cam);}loop();
+addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight);});
+</script></body></html>
