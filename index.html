@@ -7,36 +7,7 @@
   <style>html,body{margin:0;height:100%;overflow:hidden;background:#111}</style>
 </head>
 <body>
-<div id="c"></div>
-<!-- Three.js（旧式：モジュール不要） -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r160/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
-<script>
-  // --- ここから Three.js コード (import は不要) ---
-  const w=innerWidth,h=innerHeight;
-  const scene=new THREE.Scene();scene.background=new THREE.Color(0x111111);
-  const cam=new THREE.PerspectiveCamera(55,w/h,0.1,5000);cam.position.set(0,800,1200);
-  const ren=new THREE.WebGLRenderer({antialias:true});ren.setSize(w,h);document.body.appendChild(ren.domElement);
-  const ctl=new THREE.OrbitControls(cam,ren.domElement);ctl.enableDamping=true;
-
-  scene.add(new THREE.AmbientLight(0xffffff,0.7));
-  const light=new THREE.DirectionalLight(0xffffff,0.8);light.position.set(200,400,300);scene.add(light);
-
-  const r=190,st=526,p=[],seg=50;
-  for(let i=0;i<=seg;i++){const t=Math.PI/2+Math.PI/2*i/seg;p.push(new THREE.Vector3(-st/2+r*Math.cos(t),0,r*Math.sin(t))); }
-  p.push(new THREE.Vector3(st/2,0,r));
-  for(let i=0;i<=seg;i++){const t=Math.PI/2+Math.PI/2*i/seg;p.push(new THREE.Vector3(st/2+r*Math.cos(-t),0,r*Math.sin(-t))); }
-  p.push(new THREE.Vector3(-st/2,0,-r));
-
-  const path=new THREE.CatmullRomCurve3(p,true);
-  const track=new THREE.Mesh(new THREE.TubeGeometry(path,300,12,16,true),
-                             new THREE.MeshStandardMaterial({color:0x2fa62f}));
-  scene.add(track);
-
-  function loop(){requestAnimationFrame(loop);ctl.update();ren.render(scene,cam);}
-  loop();
-  addEventListener('resize',()=>{const w=innerWidth,h=innerHeight;cam.aspect=w/h;cam.updateProjectionMatrix();ren.setSize(w,h);});
-</script>
-
+  <h1 style="color:red;text-align:center;margin-top:40vh">Hello cube</h1>
 </body>
+
 </html>
