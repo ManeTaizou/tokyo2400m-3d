@@ -7,7 +7,26 @@
   <style>html,body{margin:0;height:100%;overflow:hidden;background:#111}</style>
 </head>
 <body>
-  <h1 style="color:red;text-align:center;margin-top:40vh">Hello cube</h1>
+ <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"><title>cube test</title>
+<style>html,body{margin:0;height:100%;overflow:hidden;background:#111}</style>
+</head>
+<body>
+<!-- Three.js（旧式 CDN 版） -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r160/three.min.js"></script>
+<script>
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x111111);
+const cam=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.1,1000);cam.position.z=5;
+const ren=new THREE.WebGLRenderer();ren.setSize(innerWidth,innerHeight);document.body.appendChild(ren.domElement);
+const cube=new THREE.Mesh(new THREE.BoxGeometry(),new THREE.MeshBasicMaterial({color:0xff0000}));scene.add(cube);
+(function loop(){requestAnimationFrame(loop);cube.rotation.x+=0.01;cube.rotation.y+=0.01;ren.render(scene,cam);})();
+addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight);});
+</script>
+</body>
+</html>
+
 </body>
 
 </html>
